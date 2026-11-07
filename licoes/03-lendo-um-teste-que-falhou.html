@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Lendo um Teste que Falhou</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: mesma lição em coluna única da trilha — abas, explicação, laboratório com a saída do teste (terminal) + painel de leitura/diagnóstico */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202b; --muted:#5d6878; --line:#dde3ea;
+  --accent:#2457d6; --term:#111722; --term-ink:#cfe0f5; --term-dim:#7f8ea3;
+  --ok:#2f8f6a; --bad:#c8463d; --warn:#d9922b; --hl:#ffd166;
+  --f-display:"Bricolage Grotesque",Georgia,serif;
+  --f-body:"Source Sans 3",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f141b; --panel:#171e28; --ink:#e6ebf2; --muted:#9aa6b6; --line:#28323f;
+  --accent:#6f97ff; --term:#0a0e14; --term-ink:#cfe0f5; --term-dim:#6b7a8f;
+  --ok:#4fbf93; --bad:#ef6b61; --warn:#f0ac4a; --hl:#ffd166; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --panel:#171e28; --ink:#e6ebf2; --muted:#9aa6b6; --line:#28323f;
+  --accent:#6f97ff; --term:#0a0e14; --term-ink:#cfe0f5; --term-dim:#6b7a8f;
+  --ok:#4fbf93; --bad:#ef6b61; --warn:#f0ac4a; --hl:#ffd166; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.eyebrow{font:600 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(30px,6vw,48px)/1.05 var(--f-display);margin:4px 0 0;text-wrap:balance;letter-spacing:-.02em}
+h2{font:600 20px/1.2 var(--f-display);margin:0}
+h3{font:600 16px/1.3 var(--f-body);margin:0}
+p{margin:0;max-width:68ch}
+b{font-weight:600}
+code{font:14px var(--f-mono);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:600 15px var(--f-body);color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.intro{display:flex;flex-direction:column;gap:10px}
+.lab{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lab-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.lab-head small{color:var(--muted);font-size:15px}
+.cases{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font:600 13px var(--f-mono);cursor:pointer;display:flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.chip .dot.ok{background:var(--ok)} .chip .dot.bad{background:var(--bad)}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;padding:16px}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.term{background:var(--term);color:var(--term-ink);border-radius:8px;font:12.5px/1.65 var(--f-mono);display:flex;flex-direction:column;min-width:0}
+.term header{padding:8px 12px;color:var(--term-dim);font-size:11px;border-bottom:1px solid #ffffff14;display:flex;justify-content:space-between;gap:10px}
+.term .body{overflow:auto;padding:8px 0;max-height:460px}
+.tl{display:block;white-space:pre;padding:0 12px;border-left:3px solid transparent}
+.tl.c{color:var(--term-dim)} .tl.e{color:#ff8f86} .tl.i{color:#9fe0bf} .tl.o{color:#8fc1ff} .tl.w{color:#ffd28a} .tl.dim{color:#56627a}
+.region{display:block;border:0;background:none;color:inherit;font:inherit;text-align:left;padding:0;width:100%;cursor:pointer;position:relative}
+.region:hover .tl{background:#ffffff08}
+.region .badge{position:absolute;right:10px;top:2px;font:600 10px var(--f-mono);background:var(--hl);color:#1b1408;border-radius:999px;width:18px;height:18px;display:grid;place-items:center}
+.region.sel .tl{background:#ffd16614;border-left-color:var(--hl)}
+.clue .tl{background:#ffd16614;border-left-color:var(--hl)}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.card .tag{font:600 12px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.steps{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.steps li button{display:grid;grid-template-columns:1.6em minmax(0,1fr);gap:8px;align-items:start;width:100%;text-align:left;border:1px solid transparent;background:none;color:var(--ink);font:15px/1.4 var(--f-body);padding:7px 8px;border-radius:6px;cursor:pointer}
+.steps li button:hover{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.steps li button.sel{border-color:var(--line);background:var(--panel)}
+.steps .k{font:600 11px var(--f-mono);background:var(--hl);color:#1b1408;border-radius:999px;width:20px;height:20px;display:grid;place-items:center;margin-top:1px}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{text-align:left;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:9px 12px;font:15px var(--f-body);cursor:pointer}
+.opt small{display:block;color:var(--muted);font-size:13px}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--panel))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.verdict{border-radius:8px;padding:12px 14px;font-size:15px;display:flex;flex-direction:column;gap:6px}
+.verdict.ok{background:color-mix(in srgb,var(--ok) 14%,var(--bg));border:1px solid var(--ok)}
+.verdict.bad{background:color-mix(in srgb,var(--bad) 10%,var(--bg));border:1px solid var(--bad)}
+.verdict .who{font:600 12px var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.foot{display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:14px;flex-wrap:wrap}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 14px;font:600 14px var(--f-body);cursor:pointer}
+.quiz{display:flex;flex-direction:column;gap:18px;padding:18px}
+.q{display:flex;flex-direction:column;gap:8px}
+.q .opt{background:var(--bg)}
+.why{font-size:14px;color:var(--muted)}
+.score{font:600 15px var(--f-mono)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><a href="../index.html" style="color:inherit">← Anatomia do Teste de API</a> · Lição 3</div>
+    <h1>Lendo um teste que falhou</h1>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-ler" aria-selected="true" data-view="ler">Como ler</button>
+    <button class="tab" role="tab" id="t-investigar" aria-selected="false" data-view="investigar">Investigar</button>
+    <button class="tab" role="tab" id="t-conferir" aria-selected="false" data-view="conferir">Conferir</button>
+  </nav>
+
+  <section class="intro">
+    <p>Um teste vermelho não diz <b>de quem</b> é o problema. Pode ser bug no produto, mudança de contrato, ambiente fora do ar, dado de teste errado ou o próprio teste mal escrito. A saída do runner traz as pistas, mas em ordem de máquina, não de investigação.</p>
+    <p>A leitura que funciona segue quatro passos: <b>qual teste</b> falhou, <b>o que se esperava e o que veio</b>, <b>onde</b> no seu código estourou, e o que os <b>logs</b> dizem que aconteceu antes. Só depois disso dá para dizer quem precisa agir.</p>
+  </section>
+
+  <section class="lab">
+    <div class="lab-head">
+      <h2 id="lab-title">As quatro partes de uma falha</h2>
+      <small id="lab-sub">Toque num passo à direita, ou direto num trecho marcado da saída, para ver o que ele conta.</small>
+    </div>
+
+    <div class="cases" id="cases" hidden></div>
+
+    <div class="grid" id="sim">
+      <div class="term">
+        <header><span id="term-file">$ npx jest pedidos.test.js</span><span id="term-st">FAIL</span></header>
+        <div class="body" id="out"></div>
+      </div>
+      <div class="side" id="side"></div>
+    </div>
+
+    <div class="quiz" id="quiz" hidden></div>
+
+    <div class="foot">
+      <span id="foot-hint">Siga os quatro passos</span>
+      <button class="ghost" id="next">Continuar →</button>
+    </div>
+  </section>
+</div>
+
+<script>
+// Linha: [classe, texto, região opcional]
+const ANATOMY={
+ lines:[
+  ["c","$ npx jest pedidos.test.js"],["c",""],
+  ["e"," FAIL  tests/pedidos.test.js",1],["e","  Pedidos",1],["e","    ✕ calcula o total com frete (212 ms)",1],["c",""],
+  ["c","  ● Pedidos › calcula o total com frete",2],["c","",2],
+  ["c","    expect(received).toBe(expected) // Object.is equality",2],["c","",2],
+  ["i","    Expected: 109.9",2],["e","    Received: 89.9",2],["c",""],
+  ["dim","      at Object.toBe (node_modules/expect/build/index.js:301:21)",3],
+  ["w","      at Object.<anonymous> (tests/pedidos.test.js:18:25)",3],
+  ["dim","      at processTicksAndRejections (node:internal/process/task_queues:95:5)",3],["c",""],
+  ["c","  console.log",4],
+  ["o","    POST /pedidos 201 · itens=[{sku:'CAM-01',preco:89.9}] cep='60115-000'",4],
+  ["o","    frete calculado: 0.00 (regra: frete grátis acima de 79.90)",4],["c",""],
+  ["e","Tests:       1 failed, 1 total"]
+ ],
+ steps:[
+  {k:1,t:"Qual teste falhou",d:"O nome do describe e do test diz o comportamento que quebrou: o total de um pedido com frete. Nome bem escrito já resolve metade da investigação; \"teste 3\" não diz nada."},
+  {k:2,t:"Esperado × recebido",d:"Esperava 109,90 (89,90 + 20 de frete) e veio 89,90. A diferença é exatamente o frete. Ler a diferença, e não só que falhou, é o passo que mais economiza tempo."},
+  {k:3,t:"Onde estourou",d:"O stack trace lista várias linhas. Pule as de node_modules e node:internal (cinza) e vá na primeira que é do seu projeto: pedidos.test.js, linha 18. É ali que o expect está."},
+  {k:4,t:"O que os logs contam",d:"O log mostra que o frete saiu 0 porque entrou a regra de frete grátis acima de 79,90. Ou seja: a API está fazendo o que a regra manda. Antes de abrir bug, pergunte se a regra mudou e o teste ficou desatualizado."}
+ ]
+};
+const CATS=[
+ {id:"produto",t:"Bug no produto",s:"o código da aplicação está errado"},
+ {id:"contrato",t:"Mudança de contrato",s:"a API mudou o formato da resposta"},
+ {id:"ambiente",t:"Ambiente ou infra",s:"algo fora do código está fora do ar"},
+ {id:"dado",t:"Dado ou config do teste",s:"credencial, massa ou variável errada"},
+ {id:"isolamento",t:"Teste mal isolado",s:"depende de outro teste ou de sobra"}
+];
+const CASES=[
+ {id:"CASO-1",file:"carrinho.test.js",ans:"produto",who:"Dev do back-end",
+  lines:[["c","$ npx jest carrinho.test.js"],["c",""],["e"," FAIL  tests/carrinho.test.js"],["e","    ✕ soma o subtotal em reais (98 ms)"],["c",""],
+   ["c","    expect(received).toBe(expected)"],["c",""],["i","    Expected: 149.8"],["e","    Received: 14980",1],["c",""],
+   ["w","      at Object.<anonymous> (tests/carrinho.test.js:22:30)"],["c",""],["c","  console.log"],
+   ["o","    itens: [{preco_centavos:7490,qtd:2}]"],["o","    subtotal = soma(preco_centavos * qtd)",1],["c",""],["e","Tests: 1 failed, 1 total"]],
+  why:"O valor recebido é exatamente 100 vezes o esperado: o código somou centavos e devolveu sem dividir por 100. O log confirma que o cálculo usa preco_centavos. O teste está certo; a conversão no produto está errada."},
+ {id:"CASO-2",file:"usuarios.test.js",ans:"contrato",who:"Time da API + atualizar o teste",
+  lines:[["c","$ npx jest usuarios.test.js"],["c",""],["e"," FAIL  tests/usuarios.test.js"],["e","    ✕ busca usuário por id (64 ms)"],["c",""],
+   ["e","    TypeError: Cannot read properties of undefined (reading 'email')",1],["c",""],
+   ["w","      at Object.<anonymous> (tests/usuarios.test.js:14:29)"],["c",""],["c","  console.log"],
+   ["o","    GET /usuarios/42 200"],["o",'    body: {"usuario":{"id":42,"email":"ana@exemplo.dev"}}',1],["c",""],
+   ["c","  14 |   expect(res.body.data.email).toBe('ana@exemplo.dev')",1],["c",""],["e","Tests: 1 failed, 1 total"]],
+  why:"Não é falha de assert: é um TypeError, o teste quebrou ao acessar res.body.data. O log mostra que a resposta agora vem dentro de \"usuario\", não \"data\". A API mudou o formato. Confirme se a mudança foi intencional: se foi, atualize o teste; se não foi, é quebra de contrato."},
+ {id:"CASO-3",file:"estoque.test.js",ans:"ambiente",who:"Infra / DevOps",
+  lines:[["c","$ npx jest estoque.test.js"],["c",""],["e"," FAIL  tests/estoque.test.js"],["e","    ✕ reserva item no estoque (5003 ms)"],["c",""],
+   ["e","    thrown: \"Exceeded timeout of 5000 ms for a test.",1],["c","    Add a timeout value to this test to increase the timeout\""],["c",""],
+   ["w","      at tests/estoque.test.js:9:3"],["c",""],["c","  console.error"],
+   ["e","    [db] connect ECONNREFUSED 10.0.3.14:5432",1],["e","    [db] retry 1/3 … retry 2/3 … retry 3/3",1],["c",""],["e","Tests: 1 failed, 1 total"]],
+  why:"Timeout sozinho não diz muito, mas o log mostra ECONNREFUSED na porta 5432 (PostgreSQL). O banco do ambiente não está aceitando conexão. Aumentar o timeout não resolve; o código nem chegou a rodar a regra de estoque."},
+ {id:"CASO-4",file:"relatorio.test.js",ans:"dado",who:"Quem cuida da massa e das credenciais de teste",
+  lines:[["c","$ npx jest relatorio.test.js"],["c",""],["e"," FAIL  tests/relatorio.test.js"],["e","    ✕ gera relatório mensal (120 ms)"],["c",""],
+   ["c","    expect(received).toBe(expected)"],["c",""],["i","    Expected: 200"],["e","    Received: 401",1],["c",""],
+   ["w","      at Object.<anonymous> (tests/relatorio.test.js:11:24)"],["c",""],["c","  console.log"],
+   ["o","    usando TOKEN_QA de .env.staging"],["o",'    body: {"erro":"token expirado em 2026-11-05T23:59:00Z"}',1],["c",""],["e","Tests: 1 failed, 1 total"]],
+  why:"401 é não autorizado, e o corpo diz que o token expirou ontem. O relatório pode estar perfeito; o teste nem conseguiu entrar. É credencial do ambiente de teste vencida: renovar o TOKEN_QA resolve."},
+ {id:"CASO-5",file:"cupons.test.js",ans:"isolamento",who:"Quem escreveu o teste",
+  lines:[["c","$ npx jest"],["c",""],["i"," PASS  tests/cupons-criar.test.js"],["e"," FAIL  tests/cupons-listar.test.js"],["e","    ✕ lista só os cupons ativos (77 ms)"],["c",""],
+   ["c","    expect(received).toHaveLength(expected)"],["c",""],["i","    Expected length: 1"],["e","    Received length: 3",1],["c",""],
+   ["w","      at Object.<anonymous> (tests/cupons-listar.test.js:16:22)"],["c",""],["c","  console.log"],
+   ["o","    cupons ativos: BEMVINDO, TESTE-QA-1731, TESTE-QA-1732",1],["c",""],
+   ["c","$ npx jest tests/cupons-listar.test.js"],["i"," PASS  tests/cupons-listar.test.js",1],["c",""],["e","Tests: 1 failed, 2 passed, 3 total"]],
+  why:"Rodando sozinho, passa; na suíte, falha. Os cupons extras têm cara de sobra do teste anterior (TESTE-QA-…). O teste de criar não limpa o que criou, e o de listar assume banco vazio. Falta setup e teardown de dados."}
+];
+const QUIZ=[
+ {q:"No stack trace, qual linha você olha primeiro?",o:["A primeira de todas","A primeira que é de um arquivo do seu projeto","A última","As de node_modules"],a:1,w:"As linhas de bibliotecas mostram o caminho interno. A primeira do seu código é onde a sua lógica encontrou o problema."},
+ {q:"Um teste falha com timeout. Qual é o próximo passo?",o:["Aumentar o timeout","Ler os logs para ver o que ficou esperando","Rodar de novo até passar","Apagar o teste"],a:1,w:"Timeout é sintoma. Os logs mostram se ficou esperando banco, rede ou uma resposta lenta, e cada um tem um dono diferente."},
+ {q:"O teste passa sozinho e falha na suíte inteira. O suspeito número um é…",o:["Bug no produto","Rede instável","Dado compartilhado entre testes","Versão do Node"],a:2,w:"Quando a ordem de execução muda o resultado, algum teste está deixando sujeira ou dependendo do estado de outro."},
+ {q:"Recebido 401, esperado 200. O que isso costuma indicar?",o:["Endpoint não existe","Problema de autenticação","Servidor quebrou","Formato errado"],a:1,w:"401 é não autorizado: token ausente, inválido ou expirado. Antes de abrir bug, confira a credencial usada pelo teste."}
+];
+const $=s=>document.querySelector(s);
+const out=$("#out"),side=$("#side");
+let view="ler",caseIdx=0,results={};
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function render(lines,mode){
+  // agrupa linhas consecutivas da mesma região
+  let html="",i=0;
+  while(i<lines.length){
+    const r=lines[i][2];
+    if(r==null){html+=`<span class="tl ${lines[i][0]}">${esc(lines[i][1])||" "}</span>`;i++;continue}
+    let grp=[];while(i<lines.length&&lines[i][2]===r){grp.push(lines[i]);i++}
+    const inner=grp.map(l=>`<span class="tl ${l[0]}">${esc(l[1])||" "}</span>`).join("");
+    if(mode==="anat")html+=`<button class="region" data-r="${r}"><span class="badge">${r}</span>${inner}</button>`;
+    else html+=`<span class="clue-grp" data-clue="1">${inner}</span>`;
+  }
+  out.innerHTML=html;
+}
+function anatomy(){
+  $("#term-file").textContent="$ npx jest pedidos.test.js";
+  render(ANATOMY.lines,"anat");
+  side.innerHTML=`<div class="card"><span class="tag">Ordem de leitura</span><ol class="steps">${ANATOMY.steps.map(s=>`<li><button data-k="${s.k}"><span class="k">${s.k}</span><span>${s.t}</span></button></li>`).join("")}</ol></div><div class="card" id="exp"><span class="tag" style="color:var(--muted)">Detalhe</span><p style="color:var(--muted)">Toque num passo ou num trecho numerado da saída.</p></div>`;
+  side.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>pickStep(+b.dataset.k));
+  out.querySelectorAll(".region").forEach(b=>b.onclick=()=>pickStep(+b.dataset.r));
+}
+function pickStep(k){
+  const s=ANATOMY.steps[k-1];
+  side.querySelectorAll("[data-k]").forEach(b=>b.classList.toggle("sel",+b.dataset.k===k));
+  out.querySelectorAll(".region").forEach(b=>b.classList.toggle("sel",+b.dataset.r===k));
+  $("#exp").innerHTML=`<span class="tag">Passo ${k} · ${s.t}</span><p>${s.d}</p>`;
+  const reg=out.querySelector(`.region[data-r="${k}"]`);if(reg)reg.scrollIntoView({block:"nearest"});
+}
+function buildChips(){
+  $("#cases").innerHTML=CASES.map((c,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===caseIdx}"><span class="dot ${results[c.id]===true?"ok":results[c.id]===false?"bad":""}"></span>${c.id}</button>`).join("");
+  $("#cases").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{caseIdx=+b.dataset.i;showCase()});
+}
+function showCase(){
+  buildChips();
+  const c=CASES[caseIdx];
+  $("#term-file").textContent="$ npx jest "+c.file;
+  render(c.lines,"case");
+  side.innerHTML=`<div class="card"><span class="tag">${c.id} · qual a causa?</span><p style="font-size:15px">Leia a saída e escolha a categoria do problema. Não existe "falhou e pronto": alguém precisa agir.</p><div class="opts">${CATS.map(x=>`<button class="opt" data-c="${x.id}">${x.t}<small>${x.s}</small></button>`).join("")}</div></div><div id="verdict"></div>`;
+  side.querySelectorAll(".opt").forEach(b=>b.onclick=()=>answer(b.dataset.c));
+}
+function answer(cat){
+  const c=CASES[caseIdx];
+  if(side.dataset.done===c.id)return;side.dataset.done=c.id;
+  const ok=cat===c.ans;results[c.id]=ok;
+  side.querySelectorAll(".opt").forEach(b=>{if(b.dataset.c===c.ans)b.classList.add("right");else if(b.dataset.c===cat)b.classList.add("wrong")});
+  out.querySelectorAll(".clue-grp").forEach(g=>g.classList.add("clue"));
+  const right=CATS.find(x=>x.id===c.ans).t;
+  $("#verdict").innerHTML=`<div class="verdict ${ok?"ok":"bad"}"><b>${ok?"Isso mesmo: ":"Não era isso. A causa é "}${ok?right:right.toLowerCase()}.</b><span>${c.why}</span><span class="who">Quem age: ${c.who}</span></div>`;
+  buildChips();
+  const done=Object.keys(results).length;
+  const hits=Object.values(results).filter(Boolean).length;
+  $("#foot-hint").textContent=done<CASES.length?`${done} de ${CASES.length} casos investigados · as pistas ficaram marcadas em amarelo`:`Você acertou ${hits} de ${CASES.length} casos`;
+}
+function nextCase(){
+  const pend=CASES.findIndex((c,i)=>i>caseIdx&&!(c.id in results));
+  if(pend>=0){caseIdx=pend;showCase();return true}
+  const any=CASES.findIndex(c=>!(c.id in results));
+  if(any>=0){caseIdx=any;showCase();return true}
+  return false;
+}
+function buildQuiz(){
+  let hits=0,answered=0;const qz=$("#quiz");
+  qz.innerHTML=QUIZ.map((x,i)=>`<div class="q" data-q="${i}"><b>${i+1}. ${x.q}</b><div class="opts">${x.o.map((o,j)=>`<button class="opt" data-j="${j}">${o}</button>`).join("")}</div><span class="why" hidden></span></div>`).join("")+`<div class="score" id="score">0 de ${QUIZ.length}</div>`;
+  qz.querySelectorAll(".q").forEach(div=>{
+    const x=QUIZ[div.dataset.q];
+    div.querySelectorAll(".opt").forEach(btn=>btn.onclick=()=>{
+      if(div.dataset.done)return;div.dataset.done=1;answered++;
+      const j=+btn.dataset.j;div.querySelectorAll(".opt")[x.a].classList.add("right");
+      if(j===x.a)hits++;else btn.classList.add("wrong");
+      const w=div.querySelector(".why");w.textContent=x.w;w.hidden=false;
+      $("#score").textContent=answered<QUIZ.length?`${hits} de ${QUIZ.length}`:`Resultado: ${hits} de ${QUIZ.length}${hits===QUIZ.length?" — gabaritou!":""}`;
+    });
+  });
+}
+function setView(v){
+  view=v;
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.view===v));
+  $("#cases").hidden=v!=="investigar";$("#sim").hidden=v==="conferir";$("#quiz").hidden=v!=="conferir";
+  const T={ler:["As quatro partes de uma falha","Toque num passo à direita, ou direto num trecho numerado da saída, para ver o que ele conta.","Siga os quatro passos","Continuar →"],
+    investigar:["Investigue cinco falhas","Cada caso é uma saída real de teste vermelho. Leia, escolha a causa e veja as pistas que levavam até ela.","Escolha a causa do caso","Próximo caso →"],
+    conferir:["Confira o que ficou","Quatro perguntas sobre leitura de falhas.","Responda as perguntas","Recomeçar"]}[v];
+  $("#lab-title").textContent=T[0];$("#lab-sub").textContent=T[1];$("#foot-hint").textContent=T[2];$("#next").textContent=T[3];
+  $("#term-st").textContent="FAIL";
+  if(v==="ler")anatomy();
+  if(v==="investigar")showCase();
+  if(v==="conferir")buildQuiz();
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>setView(t.dataset.view));
+$("#next").onclick=()=>{
+  if(view==="ler")setView("investigar");
+  else if(view==="investigar"){if(!nextCase()||Object.keys(results).length===CASES.length&&caseIdx===CASES.length-1)setView("conferir")}
+  else setView("ler");
+};
+anatomy();
+</script>
+</body>
+</html>

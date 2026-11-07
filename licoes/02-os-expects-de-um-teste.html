@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Os Expects de um Teste</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: mesma lição em coluna única da trilha — abas, explicação, laboratório com código do teste + painel de asserts e terminal */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202b; --muted:#5d6878; --line:#dde3ea;
+  --accent:#2457d6; --term:#111722; --term-ink:#cfe0f5; --term-dim:#7f8ea3;
+  --ok:#2f8f6a; --bad:#c8463d; --skip:#8a94a3; --warn:#d9922b; --code-kw:#7d5bd0;
+  --f-display:"Bricolage Grotesque",Georgia,serif;
+  --f-body:"Source Sans 3",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f141b; --panel:#171e28; --ink:#e6ebf2; --muted:#9aa6b6; --line:#28323f;
+  --accent:#6f97ff; --term:#0a0e14; --term-ink:#cfe0f5; --term-dim:#6b7a8f;
+  --ok:#4fbf93; --bad:#ef6b61; --skip:#6b7584; --warn:#f0ac4a; --code-kw:#a68aff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --panel:#171e28; --ink:#e6ebf2; --muted:#9aa6b6; --line:#28323f;
+  --accent:#6f97ff; --term:#0a0e14; --term-ink:#cfe0f5; --term-dim:#6b7a8f;
+  --ok:#4fbf93; --bad:#ef6b61; --skip:#6b7584; --warn:#f0ac4a; --code-kw:#a68aff; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.eyebrow{font:600 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(30px,6vw,48px)/1.05 var(--f-display);margin:4px 0 0;text-wrap:balance;letter-spacing:-.02em}
+h2{font:600 20px/1.2 var(--f-display);margin:0}
+p{margin:0;max-width:68ch}
+b{font-weight:600}
+code{font:14px var(--f-mono);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:600 15px var(--f-body);color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.intro{display:flex;flex-direction:column;gap:10px}
+.lab{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lab-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.lab-head small{color:var(--muted);font-size:15px}
+.breaks{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font:600 13px var(--f-body);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.chip.sneaky[aria-pressed="true"]{background:var(--warn);border-color:var(--warn);color:#1b1408}
+.runbar{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.runbar .cmd{flex:1;min-width:0;font:14px var(--f-mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.go{background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:8px 14px;font:600 14px var(--f-body);cursor:pointer;white-space:nowrap}
+.go:disabled{opacity:.5;cursor:default}
+.go.pulse{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 50%,transparent)}50%{box-shadow:0 0 0 6px transparent}}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;padding:16px}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.code{border:1px solid var(--line);border-radius:8px;overflow:hidden;min-width:0;background:var(--bg)}
+.code header{padding:8px 12px;font:11px var(--f-mono);color:var(--muted);border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+.lines{overflow-x:auto;padding:6px 0}
+.ln{display:grid;grid-template-columns:2.2em 1.6em max-content;align-items:center;font:12.5px/1.75 var(--f-mono);padding-right:12px;border:0;background:none;color:inherit;width:100%;text-align:left;cursor:default}
+.ln.assert{cursor:pointer}
+.ln.assert:hover{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.ln .n{color:var(--muted);text-align:right;padding-right:8px;font-size:11px}
+.ln .m{text-align:center;font-weight:600}
+.ln.sel{background:color-mix(in srgb,var(--accent) 11%,transparent)}
+.ln.pass .m{color:var(--ok)} .ln.fail .m{color:var(--bad)} .ln.skip{opacity:.42}
+.ln.fail{background:color-mix(in srgb,var(--bad) 10%,transparent)}
+.ln.running{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.kw{color:var(--code-kw)} .str{color:var(--ok)} .fn{color:var(--accent)} .num{color:var(--warn)} .cm{color:var(--muted)}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.term{background:var(--term);color:var(--term-ink);border-radius:8px;font:12.5px/1.6 var(--f-mono);display:flex;flex-direction:column;min-width:0}
+.term header{padding:8px 12px;color:var(--term-dim);font-size:11px;border-bottom:1px solid #ffffff14}
+.term pre{margin:0;padding:10px 12px;overflow:auto;white-space:pre;min-height:230px;max-height:340px;font:inherit}
+.term .c{color:var(--term-dim)} .term .o{color:#8fc1ff} .term .i{color:#9fe0bf} .term .e{color:#ff8f86} .term .w{color:#ffd28a}
+.note{background:var(--ink);color:var(--bg);border-radius:8px;padding:11px 14px;font-size:15px}
+.note.bad{background:var(--bad);color:#fff}
+.note.warn{background:var(--warn);color:#1b1408}
+.note.ok{background:var(--ok);color:#fff}
+.detail{padding:16px 18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px;min-height:100px}
+.detail .tag{font:600 12px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;padding:0 16px 14px;font:12px var(--f-mono);color:var(--muted)}
+.legend span b{font-weight:600}
+.foot{display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:14px;flex-wrap:wrap}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 14px;font:600 14px var(--f-body);cursor:pointer}
+.quiz{display:flex;flex-direction:column;gap:18px;padding:18px}
+.q{display:flex;flex-direction:column;gap:8px}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:10px 12px;font:15px var(--f-body);cursor:pointer}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--bg))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--bg))}
+.why{font-size:14px;color:var(--muted)}
+.score{font:600 15px var(--f-mono)}
+@media (prefers-reduced-motion:reduce){.go.pulse{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><a href="../index.html" style="color:inherit">← Anatomia do Teste de API</a> · Lição 2</div>
+    <h1>Os expects de um teste</h1>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-partes" aria-selected="true" data-view="partes">As partes</button>
+    <button class="tab" role="tab" id="t-quebrar" aria-selected="false" data-view="quebrar">Quebrar</button>
+    <button class="tab" role="tab" id="t-conferir" aria-selected="false" data-view="conferir">Conferir</button>
+  </nav>
+
+  <section class="intro">
+    <p>Um teste de API faz três coisas: <b>prepara</b> um request, <b>dispara</b> contra o servidor e <b>confere</b> a resposta. A parte que importa é a conferência. Cada <code>expect</code> é uma pergunta sobre a resposta: o status está certo? o formato é JSON? o campo existe e tem o tipo esperado? respondeu rápido?</p>
+    <p>Na lição anterior você viu o caminho do request. Aqui o request é o mesmo, só que agora alguém está fiscalizando o que volta. Um detalhe importante: no Jest e no Playwright, o primeiro <code>expect</code> que falha <b>interrompe o teste</b>. Os de baixo nem chegam a rodar.</p>
+  </section>
+
+  <section class="lab">
+    <div class="lab-head">
+      <h2 id="lab-title">Rode o teste e veja cada conferência</h2>
+      <small id="lab-sub">Aperte Rodar teste. Cada linha de expect acende quando é checada. Depois toque numa delas para ver o que ela garante.</small>
+    </div>
+
+    <div class="breaks" id="breaks" hidden>
+      <button class="chip" data-break="status" aria-pressed="false">Status 200 em vez de 201</button>
+      <button class="chip" data-break="ctype" aria-pressed="false">Resposta veio em HTML</button>
+      <button class="chip" data-break="id" aria-pressed="false">id veio como texto</button>
+      <button class="chip" data-break="email" aria-pressed="false">email veio vazio</button>
+      <button class="chip" data-break="slow" aria-pressed="false">API lenta (1,2 s)</button>
+      <button class="chip sneaky" data-break="nome" aria-pressed="false">Nome salvo errado</button>
+    </div>
+
+    <div id="sim">
+      <div class="runbar">
+        <span class="cmd">$ npx jest usuarios.test.js</span>
+        <button class="go pulse" id="go">Rodar teste ▶</button>
+      </div>
+
+      <div class="grid">
+        <div class="code">
+          <header><span>usuarios.test.js</span><span id="sum">—</span></header>
+          <div class="lines" id="lines"></div>
+        </div>
+        <div class="side">
+          <div class="term">
+            <header>terminal</header>
+            <pre id="out"><span class="c">aguardando o teste rodar…</span></pre>
+          </div>
+          <div class="note" id="note">O teste cria um usuário e confere cinco coisas na resposta. Rode e repare na ordem.</div>
+        </div>
+      </div>
+      <div class="legend"><span><b style="color:var(--ok)">✓</b> passou</span><span><b style="color:var(--bad)">✗</b> falhou</span><span><b style="color:var(--skip)">–</b> não rodou</span></div>
+
+      <div class="detail" id="detail"></div>
+    </div>
+
+    <div class="quiz" id="quiz" hidden></div>
+
+    <div class="foot">
+      <span id="foot-hint">Aperte Rodar teste</span>
+      <button class="ghost" id="next">Continuar →</button>
+    </div>
+  </section>
+</div>
+
+<script>
+// Código do teste: cada linha tem html (já colorido) e, se for assert, um id
+const CODE=[
+ {h:`<span class="kw">test</span>(<span class="str">'cria um usuário'</span>, <span class="kw">async</span> () => {`,part:"setup"},
+ {h:`  <span class="cm">// 1. prepara</span>`},
+ {h:`  <span class="kw">const</span> novo = { nome: <span class="str">'Ana Souza'</span>, email: <span class="str">'ana@exemplo.dev'</span> }`,part:"setup"},
+ {h:`  <span class="cm">// 2. dispara</span>`},
+ {h:`  <span class="kw">const</span> res = <span class="kw">await</span> api.<span class="fn">post</span>(<span class="str">'/usuarios'</span>, novo)`,part:"call"},
+ {h:`  <span class="cm">// 3. confere</span>`},
+ {h:`  <span class="fn">expect</span>(res.status).<span class="fn">toBe</span>(<span class="num">201</span>)`,a:"status"},
+ {h:`  <span class="fn">expect</span>(res.headers[<span class="str">'content-type'</span>]).<span class="fn">toContain</span>(<span class="str">'json'</span>)`,a:"ctype"},
+ {h:`  <span class="fn">expect</span>(res.body.id).<span class="fn">toEqual</span>(expect.<span class="fn">any</span>(Number))`,a:"id"},
+ {h:`  <span class="fn">expect</span>(res.body.email).<span class="fn">toBe</span>(novo.email)`,a:"email"},
+ {h:`  <span class="fn">expect</span>(res.duration).<span class="fn">toBeLessThan</span>(<span class="num">500</span>)`,a:"slow"},
+ {h:`})`}
+];
+const ASSERTS={
+ status:{t:"Status HTTP",info:"Garante que a API entendeu o pedido como criação. 201 Created é o código certo para um POST que cria algo; um 200 genérico pode esconder que nada foi criado, e um 4xx ou 5xx mostra que deu erro."},
+ ctype:{t:"Header content-type",info:"Garante o formato da resposta. Se vier text/html, muitas vezes é uma página de erro do servidor ou do proxy disfarçada de sucesso, e o front quebra ao tentar ler JSON."},
+ id:{t:"Tipo do campo",info:"Não testa o valor exato do id (ele muda a cada execução), só que existe e é número. É o chamado teste de contrato: o formato que o front e outros serviços esperam."},
+ email:{t:"Valor do campo",info:"Compara com o que foi enviado. É a prova de que o dado foi salvo e devolvido corretamente, e não só que a API respondeu algo."},
+ slow:{t:"Tempo de resposta",info:"Um teste funcional também pode vigiar desempenho. Um limite generoso (500 ms) pega regressões grandes sem deixar o teste instável por variações pequenas de rede."}
+};
+const ORDER=["status","ctype","id","email","slow"];
+const RES={status:201,ctype:"application/json; charset=utf-8",id:42,nome:"Ana Souza",email:"ana@exemplo.dev",ms:84};
+const BREAKS={
+ status:{set:{status:200},fail:"status",exp:"201",got:"200",
+  msg:"Pegou no primeiro expect. A API respondeu 200 em vez de 201: pode parecer detalhe, mas indica que o endpoint não está seguindo o contrato. Os outros quatro expects nem rodaram."},
+ ctype:{set:{ctype:"text/html"},fail:"ctype",exp:'"json"',got:'"text/html"',
+  msg:"O status passou, mas a resposta veio em HTML. Clássico de proxy ou servidor devolvendo página de erro com status de sucesso. Sem esse expect, o bug só aparecia no front."},
+ id:{set:{id:'"42"'},fail:"id",exp:"Any<Number>",got:'"42"',
+  msg:"O id veio como texto. Parece igual na tela, mas quebra comparações (42 !== \"42\") e quem consome a API. Esse é um bug de contrato."},
+ email:{set:{email:null},fail:"email",exp:'"ana@exemplo.dev"',got:"null",
+  msg:"A API respondeu certinho, mas não salvou o email. Só um expect sobre o valor pega isso; checar só o status deixaria passar."},
+ slow:{set:{ms:1200},fail:"slow",exp:"< 500",got:"1200",
+  msg:"Tudo funcionou, só que devagar demais. Os quatro primeiros passaram e o último pegou a regressão de desempenho."},
+ nome:{set:{nome:"Anna Souza"},fail:null,
+  msg:"O teste passou, mas o nome foi salvo errado (\"Anna Souza\"). Nenhum expect olha o campo nome, então o bug passou despercebido. Teste verde não significa sistema sem bug: significa que o que foi conferido está certo."}
+};
+const QUIZ=[
+ {q:"Quando o primeiro expect falha no Jest, o que acontece com os seguintes?",o:["Rodam normalmente","Não rodam, o teste para ali","Rodam só se forem do mesmo tipo","Viram warnings"],a:1,w:"O expect lança um erro e interrompe a função do teste. Por isso a ordem dos asserts importa: os mais básicos (status) vêm primeiro."},
+ {q:"Por que conferir o tipo do id em vez do valor exato?",o:["Porque é mais rápido","Porque o id muda a cada execução","Porque o Jest não compara números","Porque id não importa"],a:1,w:"Valores gerados pelo servidor mudam. Testar o tipo garante o contrato sem deixar o teste frágil."},
+ {q:"O teste ficou verde, mas o nome foi salvo errado. O que isso mostra?",o:["O Jest tem bug","O teste só garante o que ele confere","A API está certa","Precisa rodar de novo"],a:1,w:"Cobertura de asserts é decisão de quem escreve o teste. O que não é conferido não é garantido."},
+ {q:"A API devolveu status 200 com corpo em HTML. Qual expect pega isso primeiro?",o:["status","content-type","id","duration"],a:1,w:"O status 200 passaria se o teste esperasse 200; quem denuncia o problema é o content-type."}
+];
+const $=s=>document.querySelector(s);
+const linesEl=$("#lines"),out=$("#out"),note=$("#note"),detail=$("#detail");
+let view="partes",brk=null,running=false,ran=false,timers=[];
+
+function buildCode(){
+  linesEl.innerHTML=CODE.map((c,i)=>`<button class="ln${c.a?" assert":""}" ${c.a?`data-a="${c.a}"`:"tabindex=\"-1\""} id="ln-${i}"><span class="n">${i+1}</span><span class="m"></span><span>${c.h}</span></button>`).join("");
+  linesEl.querySelectorAll(".assert").forEach(b=>b.onclick=()=>pick(b.dataset.a));
+}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function line(cls,txt){out.insertAdjacentHTML("beforeend",`<span class="${cls}">${esc(txt)}</span>\n`);out.scrollTop=out.scrollHeight}
+function el(a){return linesEl.querySelector(`[data-a="${a}"]`)}
+function idle(){detail.innerHTML='<span class="tag" style="color:var(--muted)">Detalhe do expect</span><p style="color:var(--muted)">Toque numa linha de expect para ver o que ela garante.</p>'}
+function reset(){
+  timers.forEach(clearTimeout);timers=[];running=false;ran=false;
+  linesEl.querySelectorAll(".ln").forEach(l=>{l.classList.remove("pass","fail","skip","sel","running");l.querySelector(".m").textContent=""});
+  out.innerHTML='<span class="c">aguardando o teste rodar…</span>';$("#sum").textContent="—";
+  note.className="note";
+  note.textContent=view==="quebrar"?(brk?"Agora rode o teste e veja qual expect pega o bug.":"Escolha um bug acima e depois rode o teste."):"O teste cria um usuário e confere cinco coisas na resposta. Rode e repare na ordem.";
+  idle();$("#go").disabled=false;$("#go").classList.add("pulse");
+}
+function run(){
+  if(running)return;
+  if(view==="quebrar"&&!brk){note.textContent="Escolha primeiro um bug nos botões acima.";return}
+  reset();running=true;$("#go").disabled=true;$("#go").classList.remove("pulse");
+  const b=view==="quebrar"?BREAKS[brk]:null;
+  const r=Object.assign({},RES,b?b.set:{});
+  const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  const step=reduce?60:520;
+  out.innerHTML="";
+  line("c","$ npx jest usuarios.test.js");line("c","");
+  const q=(fn,d)=>timers.push(setTimeout(fn,d));
+  let d=200;
+  q(()=>{line("o","→ POST /usuarios");line("o",'  {"nome":"Ana Souza","email":"ana@exemplo.dev"}')},d);d+=step;
+  q(()=>{
+    line(r.status>=200&&r.status<300?"i":"e",`← ${r.status} ${r.status===201?"Created":"OK"}  (${r.ms} ms)`);
+    line("i","  content-type: "+r.ctype);
+    const body=r.ctype.includes("json")?`  {"id":${r.id},"nome":"${r.nome}","email":${r.email===null?"null":'"'+r.email+'"'}}`:"  <!doctype html><html>…";
+    line("i",body);line("c","");
+  },d);d+=step;
+  let failed=null;
+  ORDER.forEach(a=>{
+    q(()=>{
+      if(failed){el(a).classList.add("skip");el(a).querySelector(".m").textContent="–";return}
+      const e=el(a);e.classList.add("running");
+      if(b&&b.fail===a){failed=a;e.classList.remove("running");e.classList.add("fail");e.querySelector(".m").textContent="✗"}
+      else{e.classList.remove("running");e.classList.add("pass");e.querySelector(".m").textContent="✓"}
+    },d);d+=step*0.8;
+  });
+  q(()=>{
+    if(failed){
+      const ln=CODE.findIndex(c=>c.a===failed)+1;
+      line("e","FAIL  usuarios.test.js");line("e","  ✕ cria um usuário");line("c","");
+      line("c","  expect(received)."+({status:"toBe",ctype:"toContain",id:"toEqual",email:"toBe",slow:"toBeLessThan"}[failed])+"(expected)");line("c","");
+      line("i","  Expected: "+b.exp);line("e","  Received: "+b.got);line("c","");
+      line("c",`    at usuarios.test.js:${ln}`);line("c","");
+      line("e","Tests: 1 failed, 1 total");
+      $("#sum").textContent="1 falhou";note.className="note bad";note.textContent=b.msg;
+    }else{
+      line("i","PASS  usuarios.test.js");line("i","  ✓ cria um usuário ("+(r.ms+12)+" ms)");line("c","");line("i","Tests: 1 passed, 1 total");
+      $("#sum").textContent="1 passou";
+      if(b){note.className="note warn";note.textContent=b.msg}
+      else{note.className="note ok";note.textContent="Verde: os cinco expects passaram. Toque em cada um para ver o que ele garante."}
+    }
+    running=false;ran=true;$("#go").disabled=false;
+    $("#foot-hint").textContent=view==="partes"?"Agora tente quebrar a API":"Teste outro bug ou vá conferir";
+    if(failed)pick(failed);
+  },d+150);
+}
+function pick(a){
+  linesEl.querySelectorAll(".ln").forEach(l=>l.classList.toggle("sel",l.dataset.a===a));
+  const x=ASSERTS[a];const st=el(a).classList.contains("fail")?" · falhou":el(a).classList.contains("skip")?" · não rodou":el(a).classList.contains("pass")?" · passou":"";
+  detail.innerHTML=`<span class="tag">${x.t}${st}</span><p>${x.info}</p>`;
+}
+function setView(v){
+  view=v;
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.view===v));
+  $("#breaks").hidden=v!=="quebrar";$("#sim").hidden=v==="conferir";$("#quiz").hidden=v!=="conferir";
+  const T={partes:["Rode o teste e veja cada conferência","Aperte Rodar teste. Cada linha de expect acende quando é checada. Depois toque numa delas para ver o que ela garante.","Aperte Rodar teste","Continuar →"],
+    quebrar:["Quebre a API","Escolha um bug na resposta e rode o teste. Veja qual expect pega o problema, e se algum escapa.","Escolha um bug e rode o teste","Continuar →"],
+    conferir:["Confira o que ficou","Quatro perguntas sobre asserts, ordem e cobertura.","Responda as perguntas","Recomeçar"]}[v];
+  $("#lab-title").textContent=T[0];$("#lab-sub").textContent=T[1];$("#foot-hint").textContent=T[2];$("#next").textContent=T[3];
+  if(v==="partes"){brk=null;document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"))}
+  if(v==="conferir")buildQuiz();
+  reset();
+}
+function buildQuiz(){
+  let hits=0,answered=0;const qz=$("#quiz");
+  qz.innerHTML=QUIZ.map((x,i)=>`<div class="q" data-q="${i}"><b>${i+1}. ${x.q}</b><div class="opts">${x.o.map((o,j)=>`<button class="opt" data-j="${j}">${o}</button>`).join("")}</div><span class="why" hidden></span></div>`).join("")+`<div class="score" id="score">0 de ${QUIZ.length}</div>`;
+  qz.querySelectorAll(".q").forEach(div=>{
+    const x=QUIZ[div.dataset.q];
+    div.querySelectorAll(".opt").forEach(btn=>btn.onclick=()=>{
+      if(div.dataset.done)return;div.dataset.done=1;answered++;
+      const j=+btn.dataset.j;div.querySelectorAll(".opt")[x.a].classList.add("right");
+      if(j===x.a)hits++;else btn.classList.add("wrong");
+      const w=div.querySelector(".why");w.textContent=x.w;w.hidden=false;
+      $("#score").textContent=answered<QUIZ.length?`${hits} de ${QUIZ.length}`:`Resultado: ${hits} de ${QUIZ.length}${hits===QUIZ.length?" — gabaritou!":""}`;
+    });
+  });
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>setView(t.dataset.view));
+document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{brk=c.dataset.break;document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===c));reset()});
+$("#go").onclick=run;
+$("#next").onclick=()=>setView(view==="partes"?"quebrar":view==="quebrar"?"conferir":"partes");
+buildCode();idle();
+</script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>O Caminho do Request</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: lição em coluna única — abas, explicação, barra de endereço, waterfall + terminal lado a lado (empilha no celular) */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202b; --muted:#5d6878; --line:#dde3ea;
+  --accent:#2457d6; --term:#111722; --term-ink:#cfe0f5; --term-dim:#7f8ea3;
+  --dns:#2f8f6a; --tcp:#d9922b; --tls:#7d5bd0; --req:#2457d6; --res:#4f8a7b; --bad:#c8463d;
+  --f-display:"Bricolage Grotesque",Georgia,serif;
+  --f-body:"Source Sans 3",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f141b; --panel:#171e28; --ink:#e6ebf2; --muted:#9aa6b6; --line:#28323f;
+  --accent:#6f97ff; --term:#0a0e14; --term-ink:#cfe0f5; --term-dim:#6b7a8f;
+  --dns:#4fbf93; --tcp:#f0ac4a; --tls:#a68aff; --req:#6f97ff; --res:#6fb5a3; --bad:#ef6b61; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --panel:#171e28; --ink:#e6ebf2; --muted:#9aa6b6; --line:#28323f;
+  --accent:#6f97ff; --term:#0a0e14; --term-ink:#cfe0f5; --term-dim:#6b7a8f;
+  --dns:#4fbf93; --tcp:#f0ac4a; --tls:#a68aff; --req:#6f97ff; --res:#6fb5a3; --bad:#ef6b61; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.eyebrow{font:600 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(30px,6vw,48px)/1.05 var(--f-display);margin:4px 0 0;text-wrap:balance;letter-spacing:-.02em}
+h2{font:600 20px/1.2 var(--f-display);margin:0}
+p{margin:0;max-width:68ch}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:600 15px var(--f-body);color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--ink)}
+.tab:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.intro{display:flex;flex-direction:column;gap:10px}
+.intro b{font-weight:600}
+code{font:14px var(--f-mono);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.lab{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lab-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.lab-head small{color:var(--muted);font-size:15px}
+.bar{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.bar .lock{font:600 12px var(--f-mono);color:var(--muted)}
+.bar input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:15px var(--f-mono);padding:6px 0}
+.go{background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:8px 14px;font:600 14px var(--f-body);cursor:pointer;white-space:nowrap}
+.go:disabled{opacity:.5;cursor:default}
+.go.pulse{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 50%,transparent)}50%{box-shadow:0 0 0 6px transparent}}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;padding:16px}
+@media (max-width:760px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stages{display:flex;flex-direction:column;gap:2px}
+.stage{display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 3.6em;gap:10px;align-items:center;padding:9px 8px;border-radius:6px;border:0;background:none;color:inherit;text-align:left;cursor:pointer;font:inherit;opacity:.38;transition:opacity .25s}
+.stage.on{opacity:1}
+.stage.sel{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.stage.fail{opacity:1}
+.stage .nm{font:600 14px/1.2 var(--f-body)}
+.stage .nm span{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.track{position:relative;height:10px}
+.track i{position:absolute;top:0;height:10px;border-radius:3px;transform-origin:left;transform:scaleX(0);transition:transform .45s ease-out}
+.stage.on .track i{transform:scaleX(1)}
+.stage.fail .track i{background:var(--bad)!important;transform:scaleX(1)}
+.ms{font:13px var(--f-mono);color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.stage.fail .ms{color:var(--bad)}
+.axis{display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 3.6em;gap:10px;padding:2px 8px 0;font:11px var(--f-mono);color:var(--muted)}
+.axis div{display:flex;justify-content:space-between}
+.note{margin-top:12px;background:var(--ink);color:var(--bg);border-radius:8px;padding:11px 14px;font-size:15px}
+.note.bad{background:var(--bad);color:#fff}
+.term{background:var(--term);color:var(--term-ink);border-radius:8px;font:12.5px/1.6 var(--f-mono);display:flex;flex-direction:column;min-height:300px;min-width:0}
+.term header{padding:8px 12px;color:var(--term-dim);font-size:11px;border-bottom:1px solid #ffffff14;display:flex;justify-content:space-between}
+.term pre{margin:0;padding:10px 12px;overflow:auto;white-space:pre;flex:1;max-height:360px;font:inherit}
+.term .c{color:var(--term-dim)} .term .o{color:#8fc1ff} .term .i{color:#9fe0bf} .term .e{color:#ff8f86}
+.detail{padding:16px 18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px;min-height:96px}
+.detail .tag{font:600 12px var(--f-mono);letter-spacing:.06em;text-transform:uppercase}
+.foot{display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:14px;flex-wrap:wrap}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 14px;font:600 14px var(--f-body);cursor:pointer}
+.breaks{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font:600 13px var(--f-body);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.quiz{display:flex;flex-direction:column;gap:18px;padding:18px}
+.q{display:flex;flex-direction:column;gap:8px}
+.q b{font-weight:600}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:10px 12px;font:15px var(--f-body);cursor:pointer}
+.opt.right{border-color:var(--dns);background:color-mix(in srgb,var(--dns) 14%,var(--bg))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--bg))}
+.why{font-size:14px;color:var(--muted)}
+.score{font:600 15px var(--f-mono)}
+@media (prefers-reduced-motion:reduce){.track i{transition:none}.go.pulse{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><a href="../index.html" style="color:inherit">← Anatomia do Teste de API</a> · Lição 1</div>
+    <h1>O caminho do request</h1>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-etapas" aria-selected="true" data-view="etapas">As etapas</button>
+    <button class="tab" role="tab" id="t-quebrar" aria-selected="false" data-view="quebrar">Quebrar</button>
+    <button class="tab" role="tab" id="t-conferir" aria-selected="false" data-view="conferir">Conferir</button>
+  </nav>
+
+  <section class="intro" id="intro">
+    <p>Quando você aperta Enter, cinco coisas acontecem em ordem. Primeiro o computador pergunta ao <b>DNS</b> qual é o IP do site, como procurar um nome na agenda. Com o IP, abre uma conexão <b>TCP</b>: três mensagens curtas para os dois lados combinarem que vão conversar. Depois vem o <b>TLS</b>: o servidor mostra um certificado provando quem é, e os dois combinam a criptografia. Só então sai o <b>request HTTP</b>, e volta a <b>resposta</b>.</p>
+    <p>Tudo aqui imita o mundo real: o terminal mostra a saída de <code>curl -v</code>, e o gráfico de tempo é o mesmo da aba Network → Timing do navegador.</p>
+  </section>
+
+  <section class="lab" id="lab">
+    <div class="lab-head">
+      <h2 id="lab-title">Acompanhe o caminho do request</h2>
+      <small id="lab-sub">Aperte Enter na barra de endereço e veja as etapas acendendo. Depois toque numa etapa para ver o que ela fez.</small>
+    </div>
+
+    <div class="breaks" id="breaks" hidden>
+      <button class="chip" data-break="dns" aria-pressed="false">DNS não acha o domínio</button>
+      <button class="chip" data-break="tcp" aria-pressed="false">Servidor não responde</button>
+      <button class="chip" data-break="tls" aria-pressed="false">Certificado vencido</button>
+      <button class="chip" data-break="404" aria-pressed="false">Página não existe (404)</button>
+      <button class="chip" data-break="500" aria-pressed="false">Servidor quebrou (500)</button>
+    </div>
+
+    <div id="sim">
+      <div class="bar">
+        <span class="lock">🔒</span>
+        <input id="url" value="https://aprenda.exemplo.dev/" spellcheck="false" autocomplete="off" aria-label="Endereço">
+        <button class="go pulse" id="go">Enter ↵</button>
+      </div>
+
+      <div class="grid">
+        <div>
+          <div class="stages" id="stages"></div>
+          <div class="axis"><span></span><div><span>0</span><span id="axmax">135 ms</span></div><span></span></div>
+          <div class="note" id="note">Essa URL passa por cinco etapas. Aperte Enter e repare na ordem em que elas acontecem.</div>
+        </div>
+        <div class="term">
+          <header><span>terminal</span><span id="cmd">$ curl -v https://aprenda.exemplo.dev/</span></header>
+          <pre id="out"><span class="c">aguardando Enter…</span></pre>
+        </div>
+      </div>
+
+      <div class="detail" id="detail">
+        <span class="tag" style="color:var(--muted)">Detalhe da etapa</span>
+        <p style="color:var(--muted)">Depois de rodar, toque numa etapa para ler o que ela fez.</p>
+      </div>
+    </div>
+
+    <div class="quiz" id="quiz" hidden></div>
+
+    <div class="foot">
+      <span id="foot-hint">Aperte Enter na barra de endereço</span>
+      <button class="ghost" id="next">Continuar →</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const STAGES=[
+ {id:"dns",nm:"DNS",sub:"o nome vira um endereço IP",ms:14,color:"var(--dns)",
+  info:"O navegador pergunta a um resolvedor DNS qual IP corresponde ao domínio. A resposta costuma ficar em cache, por isso visitas seguintes pulam essa etapa ou levam quase 0 ms.",
+  lines:[["c","*   Host aprenda.exemplo.dev:443 was resolved."],["c","* IPv4: 104.21.48.117"],["c","*   Trying 104.21.48.117:443..."]]},
+ {id:"tcp",nm:"TCP",sub:"abre a conexão com o servidor",ms:21,color:"var(--tcp)",
+  info:"O handshake de três vias: o cliente manda SYN, o servidor responde SYN-ACK e o cliente confirma com ACK. Leva cerca de uma ida e volta (RTT) até o servidor.",
+  lines:[["c","* Connected to aprenda.exemplo.dev (104.21.48.117) port 443"]]},
+ {id:"tls",nm:"TLS",sub:"combina a criptografia",ms:38,color:"var(--tls)",
+  info:"O servidor envia o certificado, o cliente verifica se ele é válido e se bate com o domínio, e os dois geram chaves de sessão. Daqui pra frente tudo trafega criptografado.",
+  lines:[["c","* ALPN: curl offers h2,http/1.1"],["c","* SSL connection using TLSv1.3 / TLS_AES_128_GCM_SHA256"],["c","* Server certificate:"],["c","*  subject: CN=*.exemplo.dev"],["c","*  expire date: Mar  3 23:59:59 2027 GMT"],["c","* ALPN: server accepted h2"]]},
+ {id:"req",nm:"Request HTTP",sub:"manda o pedido",ms:2,color:"var(--req)",
+  info:"O navegador envia o método (GET), o caminho (/) e os headers: Host, User-Agent, Accept, cookies. É pequeno, por isso leva só uns 2 ms para sair.",
+  lines:[["o","> GET / HTTP/2"],["o","> Host: aprenda.exemplo.dev"],["o","> User-Agent: curl/8.7.1"],["o","> Accept: */*"],["o",">"]]},
+ {id:"res",nm:"Resposta HTTP",sub:"espera e recebe a resposta",ms:60,color:"var(--res)",
+  info:"Inclui o tempo de espera (o servidor processando, o TTFB) e o download do corpo. O status 200 diz que deu certo; o content-type diz ao navegador que é HTML.",
+  lines:[["i","< HTTP/2 200"],["i","< content-type: text/html; charset=utf-8"],["i","< content-length: 18342"],["i","<"],["i",'<!doctype html><html lang="pt-BR">…']]}
+];
+const BREAKS={
+ dns:{at:0,msg:"Falhou no DNS: ninguém conhece esse nome. Nada depois disso acontece, porque sem IP não há para onde conectar.",
+  lines:[["e","* Could not resolve host: aprenda.exemplo.dev"],["e","curl: (6) Could not resolve host"]],url:"https://aprenda.exemplo.dev/"},
+ tcp:{at:1,msg:"O DNS achou o IP, mas o servidor não respondeu ao SYN. O cliente espera até desistir: é o famoso timeout.",
+  lines:[["e","* connect to 104.21.48.117 port 443 failed: Connection timed out"],["e","curl: (28) Failed to connect"]]},
+ tls:{at:2,msg:"A conexão abriu, mas o certificado venceu. O cliente se recusa a continuar, porque não dá para provar que o servidor é quem diz ser.",
+  lines:[["c","* Server certificate:"],["c","*  expire date: Jan  1 23:59:59 2025 GMT"],["e","* SSL certificate problem: certificate has expired"],["e","curl: (60) SSL certificate problem"]]},
+ "404":{at:5,status:"404",msg:"A rede funcionou inteira! O servidor respondeu, só que dizendo que esse caminho não existe. Erros 4xx são problema do pedido, não da conexão.",
+  lines:[["e","< HTTP/2 404"],["i","< content-type: text/html; charset=utf-8"],["i","<"],["i","<h1>Página não encontrada</h1>"]],url:"https://aprenda.exemplo.dev/nao-existe"},
+ "500":{at:5,status:"500",msg:"Tudo chegou ao servidor, mas o código dele quebrou ao montar a resposta. Erros 5xx são problema do servidor.",
+  lines:[["e","< HTTP/2 500"],["i","< content-type: text/plain"],["i","<"],["i","Internal Server Error"]]}
+};
+const QUIZ=[
+ {q:"Qual etapa acontece primeiro?",o:["TLS","DNS","TCP","Request HTTP"],a:1,w:"Sem saber o IP, não há com quem abrir conexão. O DNS vem antes de tudo."},
+ {q:"Um erro 404 significa que…",o:["o DNS falhou","a conexão caiu","a rede funcionou, mas o caminho não existe","o certificado venceu"],a:2,w:"Para receber um 404 o servidor precisou responder, então DNS, TCP e TLS deram certo."},
+ {q:"Por que o TLS vem depois do TCP?",o:["Porque é mais lento","Porque precisa de uma conexão aberta para trocar o certificado","Porque o DNS exige","Não precisa, é opcional"],a:1,w:"O TLS roda em cima da conexão TCP. Sem o canal aberto, não há por onde mandar o certificado."},
+ {q:"Na segunda visita ao mesmo site, qual etapa costuma quase sumir?",o:["Resposta HTTP","DNS, por causa do cache","Request HTTP","Nenhuma"],a:1,w:"O IP fica guardado em cache, então a consulta DNS praticamente não acontece."}
+];
+const $=s=>document.querySelector(s);
+const stagesEl=$("#stages"),out=$("#out"),note=$("#note"),detail=$("#detail");
+const total=STAGES.reduce((s,x)=>s+x.ms,0);
+let view="etapas",brk=null,running=false,ran=false,sel=null,timers=[];
+
+function buildStages(){
+  let t=0;
+  stagesEl.innerHTML=STAGES.map((s,i)=>{
+    const left=t/total*100,w=Math.max(s.ms/total*100,1.2);t+=s.ms;
+    return `<button class="stage" data-i="${i}" id="st-${s.id}">
+      <span class="nm">${s.nm}<span>${s.sub}</span></span>
+      <span class="track"><i style="left:${left}%;width:${w}%;background:${s.color}"></i></span>
+      <span class="ms">${s.ms} ms</span></button>`}).join("");
+  $("#axmax").textContent=total+" ms";
+  stagesEl.querySelectorAll(".stage").forEach(b=>b.onclick=()=>pick(+b.dataset.i));
+}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function line(cls,txt){out.insertAdjacentHTML("beforeend",`<span class="${cls}">${esc(txt)}</span>\n`);out.scrollTop=out.scrollHeight}
+function reset(){
+  timers.forEach(clearTimeout);timers=[];running=false;ran=false;sel=null;
+  stagesEl.querySelectorAll(".stage").forEach(b=>{b.classList.remove("on","fail","sel");b.querySelector(".ms").textContent=STAGES[b.dataset.i].ms+" ms"});
+  out.innerHTML='<span class="c">aguardando Enter…</span>';
+  note.className="note";
+  note.textContent=view==="quebrar"?(brk?"Agora aperte Enter e veja em qual etapa o request para.":"Escolha uma falha acima e depois aperte Enter."):"Essa URL passa por cinco etapas. Aperte Enter e repare na ordem em que elas acontecem.";
+  detail.innerHTML='<span class="tag" style="color:var(--muted)">Detalhe da etapa</span><p style="color:var(--muted)">Depois de rodar, toque numa etapa para ler o que ela fez.</p>';
+  $("#go").disabled=false;$("#go").classList.add("pulse");
+}
+function run(){
+  if(running)return;
+  if(view==="quebrar"&&!brk){note.textContent="Escolha primeiro uma falha nos botões acima.";return}
+  reset();running=true;$("#go").disabled=true;$("#go").classList.remove("pulse");
+  out.innerHTML="";line("c","$ curl -v "+$("#url").value);
+  const b=view==="quebrar"?BREAKS[brk]:null;
+  const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  let delay=250;
+  STAGES.forEach((s,i)=>{
+    timers.push(setTimeout(()=>{
+      const el=$("#st-"+s.id);
+      if(b&&i===b.at){
+        el.classList.add("fail");el.querySelector(".ms").textContent="falhou";
+        b.lines.forEach(l=>line(...l));finish(b);return;
+      }
+      if(b&&i>b.at)return;
+      el.classList.add("on");
+      let ls=s.lines;
+      if(b&&b.status&&s.id==="res"){ls=b.lines;el.querySelector(".track i").style.background="var(--bad)"}
+      ls.forEach(l=>line(...l));
+      if(i===STAGES.length-1)finish(b);
+    },delay));
+    delay+=reduce?60:Math.max(380,s.ms*14);
+  });
+}
+function finish(b){
+  timers.push(setTimeout(()=>{
+    running=false;ran=true;$("#go").disabled=false;
+    if(b){note.className="note bad";note.textContent=b.msg}
+    else{note.textContent=`Pronto: ${total} ms do Enter até o HTML chegar. Toque numa etapa para ver o que ela fez.`}
+    $("#foot-hint").textContent=view==="etapas"?"Agora tente quebrar o caminho":"Teste outra falha ou vá conferir";
+  },300));
+}
+function pick(i){
+  if(!ran)return;
+  sel=i;stagesEl.querySelectorAll(".stage").forEach(b=>b.classList.toggle("sel",+b.dataset.i===i));
+  const s=STAGES[i];
+  detail.innerHTML=`<span class="tag" style="color:${s.color}">${s.nm} · ${s.ms} ms</span><p>${s.info}</p>`;
+}
+function setView(v){
+  view=v;
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.view===v));
+  $("#breaks").hidden=v!=="quebrar";$("#sim").hidden=v==="conferir";$("#quiz").hidden=v!=="conferir";
+  const T={etapas:["Acompanhe o caminho do request","Aperte Enter na barra de endereço e veja as etapas acendendo. Depois toque numa etapa para ver o que ela fez.","Aperte Enter na barra de endereço","Continuar →"],
+    quebrar:["Quebre o caminho","Escolha o que vai dar errado e aperte Enter. Repare em qual etapa o request para e o que o terminal mostra.","Escolha uma falha e aperte Enter","Continuar →"],
+    conferir:["Confira o que ficou","Quatro perguntas rápidas sobre a ordem e os erros.","Responda as perguntas","Recomeçar"]}[v];
+  $("#lab-title").textContent=T[0];$("#lab-sub").textContent=T[1];$("#foot-hint").textContent=T[2];$("#next").textContent=T[3];
+  if(v==="etapas"){brk=null;$("#url").value="https://aprenda.exemplo.dev/";document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"))}
+  if(v==="conferir")buildQuiz();
+  reset();
+}
+function buildQuiz(){
+  let hits=0,answered=0;
+  const q=$("#quiz");
+  q.innerHTML=QUIZ.map((x,i)=>`<div class="q" data-q="${i}"><b>${i+1}. ${x.q}</b><div class="opts">${x.o.map((o,j)=>`<button class="opt" data-j="${j}">${o}</button>`).join("")}</div><span class="why" hidden></span></div>`).join("")+`<div class="score" id="score">0 de ${QUIZ.length}</div>`;
+  q.querySelectorAll(".q").forEach(div=>{
+    const x=QUIZ[div.dataset.q];
+    div.querySelectorAll(".opt").forEach(btn=>btn.onclick=()=>{
+      if(div.dataset.done)return;div.dataset.done=1;answered++;
+      const j=+btn.dataset.j;
+      div.querySelectorAll(".opt")[x.a].classList.add("right");
+      if(j===x.a)hits++;else btn.classList.add("wrong");
+      const w=div.querySelector(".why");w.textContent=x.w;w.hidden=false;
+      $("#score").textContent=answered<QUIZ.length?`${hits} de ${QUIZ.length}`:`Resultado: ${hits} de ${QUIZ.length} ${hits===QUIZ.length?"— gabaritou!":""}`;
+    });
+  });
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>setView(t.dataset.view));
+document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
+  brk=c.dataset.break;
+  document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===c));
+  $("#url").value=BREAKS[brk].url||"https://aprenda.exemplo.dev/";
+  reset();
+});
+$("#go").onclick=run;
+$("#url").addEventListener("keydown",e=>{if(e.key==="Enter")run()});
+$("#next").onclick=()=>setView(view==="etapas"?"quebrar":view==="quebrar"?"conferir":"etapas");
+buildStages();
+</script>
+</body>
+</html>
